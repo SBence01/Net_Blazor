@@ -20,7 +20,7 @@
 </MudCard>
 <br/>
 
-<MudTable Items="GetAll()" Filter="new Func<Department, bool>(Search)" @bind-department="department">
+<MudTable Items="@departments" Filter="new Func<Department, bool>(Search)" @bind-department="department">
     <ToolBarContent>
         <MudText Typo="Typo.h6">Employees</MudText>
         <MudSpacer/>
@@ -46,56 +46,35 @@
 
     protected override async Task OnInitializedAsync()
     {
-        departments = departmentService.GetAll();
+        departments = await Http.GetFromJsonAsync<List<Department>>("api/Department");
     }
 
     private bool Search(Department department)
     {
-        if (string.IsNullOrWhiteSpace(searchString)) return true;
-        if(department.DepartmentName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-        return false;
+        return string.IsNullOrWhiteSpace(searchString) || department.DepartmentName.Contains(searchString, StringComparison.OrdinalIgnoreCase);
     }
 
-    private List<Department> GetAll()
-    {
-        departments = departmentService.GetAll();
-        return departments;
-    }
-
-    private void Add()
+    private async Task Add()
     {
         if (department.DepartmentId == 0)
         {
-            departmentService.Add(department);
-            snackBar.Add("Department Added", Severity.Success);
+            await Http.PostAsJsonAsync("api/Department", department);
         }
         else
         {
-            departmentService.Update(department);
-            snackBar.Add("Department Updated", Severity.Success);
+            await Http.PutAsJsonAsync($"api/Department/{department.DepartmentId}", department);
         }
-        department = new Department();
-
-        GetAll();
+        departments = await Http.GetFromJsonAsync<List<Department>>("api/Department");
     }
 
     private void Update(Department record)
     {
         department = record;
-        StateHasChanged();
     }
 
     private async Task Delete(Department record)
     {
-        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", "Are you sure?");
-        if (confirmed)
-        {
-            departmentService.Delete(record);
-            snackBar.Add("Department Deleted", Severity.Success);
-            GetAll();
-        }
+        await Http.DeleteAsync($"api/Department/{record.DepartmentId}");
+        departments = await Http.GetFromJsonAsync<List<Department>>("api/Department");
     }
 }
