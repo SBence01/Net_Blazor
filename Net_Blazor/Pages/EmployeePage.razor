@@ -3,6 +3,7 @@
 @using System.Linq
 @inject MudBlazor.ISnackbar snackBar
 @inject IJSRuntime JsRuntime
+@inject HttpClient Http
 
 <MudCard Elevation="25">
     <MudCardHeader>
@@ -72,8 +73,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        departments = departmentService.GetAll();
-        employees = employeeService.GetAll();
+        employees = await Http.GetFromJsonAsync<List<Employee>>("api/Employee");
     }
 
     private bool Search(Employee employee)
@@ -93,21 +93,20 @@
         return employees;
     }
 
-    private void Add()
+    private async Task Add()
     {
         if (employee.EmployeeId == 0)
         {
-            employeeService.Add(employee);
+            await Http.PostAsJsonAsync("api/Employee", employee);
             snackBar.Add("Employee Added", Severity.Success);
         }
         else
         {
-            employeeService.Update(employee);
+            await Http.PutAsJsonAsync($"api/Employee/{employee.EmployeeId}", employee);
             snackBar.Add("Employee Updated", Severity.Success);
         }
         employee = new Employee();
-
-        GetAll();
+        await OnInitializedAsync();
     }
 
     private void Update(Employee record)
